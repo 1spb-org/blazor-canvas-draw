@@ -1,0 +1,101 @@
+﻿@page "/counter"
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+ 
+
+@inject Microsoft.JSInterop.IJSRuntime js;
+
+@using Excubo.Blazor.Canvas
+
+<Canvas @ref="helper_canvas" width="150px" height="300px" />
+
+
+<br /><br />
+<!--OR-->
+
+<canvas @ref="normal_canvas" width="600px" height="300px"></canvas>
+
+@code {
+    private int currentCount = 0;
+    int _radius = 75;
+    Random _r = new Random();
+
+    private void IncrementCount()
+    {
+        currentCount++;
+        Render();
+    }
+    private void Start()
+    {
+
+        Task.Run(RenderAuto);
+    }
+
+    async Task RenderAuto()
+    {
+        while (true)
+        {
+            await Task.Delay(50);
+            await Render();        
+        }        
+    }
+
+    private Canvas helper_canvas;
+    private ElementReference normal_canvas;
+    protected override async Task OnAfterRenderAsync(bool first_render)
+    {
+        if (first_render)
+        {
+            await Render();
+        }
+    }
+
+    async Task Render()
+    {
+        _radius = _r.Next(50, 75);
+
+        await using (var ctx1 = await helper_canvas.GetContext2DAsync())
+        {
+            await ctx1.BeginPathAsync();
+            await ctx1.ClearRectAsync(0, 0, 150, 150); 
+            await ctx1.FillAsync(FillRule.NonZero);
+
+            await ctx1.BeginPathAsync();
+            await ctx1.MoveToAsync(_r.Next(20, 150), 0);  
+            await ctx1.LineToAsync(150, 150); 
+            await ctx1.StrokeAsync();
+
+
+            await ctx1.BeginPathAsync();
+            await ctx1.EllipseAsync(75, 75, _radius, _radius, 20, 0, 1.5 * Math.PI);
+            await ctx1.FillRectAsync(75 * _r.NextDouble(), 0, _radius, _radius);  
+            await ctx1.StrokeAsync();
+
+            await ctx1.FontAsync("48px solid");
+            await ctx1.FillTextAsync("Hello", 0, 150);
+
+
+        }
+
+        await using (var ctx2 = await js.GetContext2DAsync(normal_canvas))
+        {
+            await ctx2.BeginPathAsync();
+            await ctx2.ClearRectAsync(0, 0, 600, 300);  
+            await ctx2.FillAsync(FillRule.NonZero);
+
+            await ctx2.FontAsync("48px serif");
+            await ctx2.StrokeTextAsync("Excubo.Blazor.Canvas", 0, 150);
+        }
+    }
+}
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="Start">Start!!</button>
+
+
+
